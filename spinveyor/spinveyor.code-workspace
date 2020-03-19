@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "/Users/alexcerjanic/Developer/SpinVeyor"
+		}
+	],
+	"settings": {
+		"python.envFile": "${workspaceFolder}/dev.env"
+	}
+}

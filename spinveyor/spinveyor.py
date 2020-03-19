@@ -1,8 +1,11 @@
 import os
 import click
+from click_default_group import DefaultGroup
 import minio
 import string
 import celery
+import requests 
+from prettytable import PrettyTable
 
 from minio import Minio
 from minio.error import BucketAlreadyExists, BucketAlreadyOwnedByYou, NoSuchKey
@@ -11,15 +14,20 @@ from progress import Progress
 
 from SV_Worker.tasks import submit_job_to_queue
 
-@click.command()
+@click.group(cls=DefaultGroup, default='submit', default_if_no_args=True)
+#@click.group()
+def cli():
+    pass
+
+@cli.command()
 @click.argument('senfm', type=click.Path(exists=True))
 @click.argument('imgData', type=click.Path(exists=True))
 @click.argument('recontype')
 @click.option("--subjectID", default='defaultSubj', help="Subject ID to use")
 @click.option('--verbose', is_flag=True, help="Will print verbose messages.")
 
-def spinveyor(senfm, imgdata, recontype, subjectid, verbose):
-    """Driver program to lanch SpinVeyor recons from the commandline."""
+def submit(senfm, imgdata, recontype, subjectid, verbose):
+    """Submits SpinVeyor recons (Default)""" 
 
     click.echo("SenFM: %s imgData: %s protocol: %s" % (senfm, imgdata, recontype))
 
@@ -68,6 +76,21 @@ def copy_file_to_object_store(minio_client, filename, bucket, objectname):
                           file_data, file_stat.st_size, progress=progress)
     except ResponseError as err:
         print(err)
-        
+
+
+@cli.command()
+def studies():
+    """Polls server and lists all studies """
+    URL = "http://" + os.environ["SPINVEYOR_HOST"] + "/api/studies"
+    r = requests.get(url=URL)
+
+    data = r.json()
+    # Try to print with PTable
+    text = PrettyTable(["Name", "Slug", "Recon name", "Recon file"])
+
+    for ii in data:
+            text.add_row([ii['name'], ii['slug'], ii['recon_protocol']['name'], ii['recon_protocol']['nf_file']])   
+    print(text)
+
 if __name__ == '__main__':
-    spinveyor()
+   cli()
