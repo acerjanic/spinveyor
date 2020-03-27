@@ -22,22 +22,33 @@ def cli():
 @cli.command()
 @click.argument('senfm', type=click.Path(exists=True))
 @click.argument('imgData', type=click.Path(exists=True))
-@click.argument('recontype')
+@click.argument('study')
 @click.option("--subjectID", default='defaultSubj', help="Subject ID to use")
 @click.option('--verbose', is_flag=True, help="Will print verbose messages.")
-
-def submit(senfm, imgdata, recontype, subjectid, verbose):
+@click.option('--user', prompt=True)
+@click.option('--password', prompt=True, hide_input=True,
+              confirmation_prompt=False)
+def submit(senfm, imgdata, study, subjectid, verbose, user, password):
     """Submits SpinVeyor recons (Default)""" 
 
-    click.echo("SenFM: %s imgData: %s protocol: %s" % (senfm, imgdata, recontype))
+    click.echo("SenFM: %s imgData: %s protocol: %s" % (senfm, imgdata, study))
 
     minio_client = Minio(os.environ['MINIO_HOST'], 
         access_key=os.environ['MINIO_ACCESS_KEY'],
         secret_key=os.environ['MINIO_SECRET_KEY'],
         secure=False)
-        
-    bucket_name = subjectid.lower()
 
+    print('Creating a recon record on SpinVeyor host')
+    URL = "http://" + os.environ["SPINVEYOR_HOST"] + "/api/recons/"
+    payload = {'study': study, 'subject_id': subjectid}
+    r = requests.post(url=URL, auth=(user, password), data=payload)
+    
+    # Need to get the response from the POST that submitted the study
+    data = r.json()
+
+    # Use uuid from the recon that was issued by the server as the bucket_name for S3
+    bucket_name = data['id']
+    
     print('Creating bucket to store data on s3:\\' + os.environ['MINIO_HOST'])
     # Create a bucket for the recon
     # Use the SubjectID to create the bucket name
@@ -79,10 +90,13 @@ def copy_file_to_object_store(minio_client, filename, bucket, objectname):
 
 
 @cli.command()
-def studies():
+@click.option('--user', prompt=True)
+@click.option('--password', prompt=True, hide_input=True,
+              confirmation_prompt=False)
+def studies(user, password):
     """Polls server and lists all studies """
     URL = "http://" + os.environ["SPINVEYOR_HOST"] + "/api/studies"
-    r = requests.get(url=URL)
+    r = requests.get(url=URL, auth=(user, password))
 
     data = r.json()
     # Try to print with PTable

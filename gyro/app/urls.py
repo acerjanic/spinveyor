@@ -10,10 +10,10 @@ from app import views
 from app.api import views as apiviews
 
 
-
 router = routers.SimpleRouter()
 router.register(r'studies', apiviews.StudyViewSet)
 router.register(r'reconprotocols', apiviews.ReconProtocolViewSet)
+router.register(r'recons', apiviews.ReconViewSet)
 
 
 urlpatterns = [

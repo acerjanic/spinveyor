@@ -13,6 +13,7 @@
 				"name": "Test"
 			}
 		],
-		"sqltools.useNodeRuntime": true
+		"sqltools.useNodeRuntime": true,
+		"terminal.integrated.scrollback": 10000
 	}
 }
