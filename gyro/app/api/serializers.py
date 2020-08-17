@@ -23,5 +23,5 @@ class ReconSerializer(serializers.ModelSerializer):
                                          )
     class Meta:
         model = Recon
-        fields = ['id', 'study', 'subject_id', 'created_at']
+        fields = ['id', 'study', 'subject_id', 'created_at', 'status', 'created_by', 'status_changed']
 

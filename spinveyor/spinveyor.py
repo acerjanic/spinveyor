@@ -41,7 +41,18 @@ def submit(senfm, imgdata, study, subjectid, verbose, user, password):
     print('Creating a recon record on SpinVeyor host')
     URL = "http://" + os.environ["SPINVEYOR_HOST"] + "/api/recons/"
     payload = {'study': study, 'subject_id': subjectid}
-    r = requests.post(url=URL, auth=(user, password), data=payload)
+    
+    try:
+        r = requests.post(url=URL, auth=(user, password), data=payload)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        return "An Http Error occurred:" + repr(errh)
+    except requests.exceptions.ConnectionError as errc:
+        return "An Error Connecting to the API occurred:" + repr(errc)
+    except requests.exceptions.Timeout as errt:
+        return "A Timeout Error occurred:" + repr(errt)
+    except requests.exceptions.RequestException as err:
+        return "An Unknown Error occurred" + repr(err)
     
     # Need to get the response from the POST that submitted the study
     data = r.json()
@@ -66,7 +77,28 @@ def submit(senfm, imgdata, study, subjectid, verbose, user, password):
     print('\n')
     print('Adding reconstruction to queue...\n')
     # Fire off the recon by sending to the Celery queue
-    submit_job_to_queue.delay(recontype, bucket_name, os.path.basename(senfm), os.path.basename(imgdata), subjectid)
+    submit_job_to_queue.delay(study, bucket_name, os.path.basename(senfm), os.path.basename(imgdata), subjectid)
+    
+    # Update the recon record with the queued status
+    URL = "http://" + os.environ["SPINVEYOR_HOST"] + "/api/recons/"
+    payload = {'recon': bucket_name, 'status': 'Queued'}
+
+    try: 
+        r = requests.patch(url=URL, auth=(user,password), data=payload)
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as errh:
+        return "An Http Error occurred:" + repr(errh)
+    except requests.exceptions.ConnectionError as errc:
+        return "An Error Connecting to the API occurred:" + repr(errc)
+    except requests.exceptions.Timeout as errt:
+        return "A Timeout Error occurred:" + repr(errt)
+    except requests.exceptions.RequestException as err:
+        return "An Unknown Error occurred" + repr(err)    
+        
+        
+
+
+    
 
 def create_bucket_in_object_store(minio_client, bucket):
     try:

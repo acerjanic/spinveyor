@@ -8,13 +8,21 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template import loader
 from django.http import HttpResponse
+from django.views import generic, View
 from rest_framework import viewsets
 from .api.serializers import StudySerializer
-from .models import Study
+from .models import Study, Recon
+
 
 @login_required(login_url="/login/")
 def index(request):
-    return render(request, "index.html")
+    list_studies = Study.objects.all()
+    list_recent_recons = Recon.objects.filter(created_by=request.user).order_by('-created_at')[:5]
+    context = {
+        'study_list' : list_studies,
+        'user_recon_list' : list_recent_recons,
+    }
+    return render(request, "index.html", context=context)
 
 @login_required(login_url="/login/")
 def pages(request):
@@ -31,3 +39,5 @@ def pages(request):
 
         template = loader.get_template( 'pages/error-404.html' )
         return HttpResponse(template.render(context, request))
+
+
